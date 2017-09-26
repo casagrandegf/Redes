@@ -18,8 +18,8 @@ Simple udp client
 #include <unistd.h>
 #include <sys/time.h>
 
-// #include "list.h"
-#include "dijkstra.h"
+#include "utility.h"
+// #include "dijkstra.h"
 
 // #define MAX 1123
 #define SERVER "127.0.0.1"
@@ -30,54 +30,14 @@ Simple udp client
  * -lpthread */
 /* We always need to include this header file for<\n>
  * the threads */
-struct roteamento {
- int port;
- char ip[20];
-};
-// struct tplg {
-//   struct list *adjList[MAX];
-//   int n;
-// };
-void *client(struct roteamento *rotConf);
-void *server(char *port);
-// pthread_mutex_t count_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-
-void getEnl(struct tplg *topology) {
-  FILE *fp;
-  int u, v, w;
-
-  // memset((*topology).adjList, 0, sizeof((*topology).vet));
-  (*topology).n = 0;
-
-  fp = fopen("enlaces.config", "r");
-  while (fscanf(fp, "%d %d %d", &u, &v, &w) != EOF)
-    insere_list(&(*topology).adjList[u], v, w),
-    insere_list(&(*topology).adjList[v], u, w),
-    (*topology).n++;
-    // (*topology).vet[u][v] = w,
-    // (*topology).vet[v][u] = w,
-  fclose(fp);
-}
-
-void getRot(struct roteamento rotConf[]) {
-  FILE *fp;
-  int a,b;
-  char c[15];
-
-  fp = fopen("roteador.config", "r");
-  while(fscanf(fp, "%d %d %s", &a, &b, c) != EOF)
-    (rotConf)[a].port = b, strcpy((rotConf)[a].ip, c);
-
-  fclose(fp);
-}
 
 int main(int argc, char *argv[]) {
   int id_no = atoi(argv[1]);
   // printf("AQUI\n");
   struct roteamento rotConf[100];
   struct tplg topology;
-  int dist[MAX];
+  struct pair dist[MAX];
 
   ini_list(topology.adjList, MAX); //zera vetor de listas
 
@@ -111,20 +71,20 @@ int main(int argc, char *argv[]) {
 #ifdef DIST
   int i;
   for (i = 0; i < topology.n; i++)
-    printf("%d\n", dist[i]);
+    printf("i: %d saida = %d dist = %d\n", i, dist[i].second, dist[i].first);
 #endif
 
 
   // printf("%d\n", id_no);
-  pthread_t tids[2];
-  pthread_create(&tids[0], NULL, client, rotConf);
-  pthread_create(&tids[1], NULL, server, rotConf[id_no].port);
+  // pthread_t tids[2];
+  // pthread_create(&tids[0], NULL, client, rotConf);
+  // pthread_create(&tids[1], NULL, server, rotConf[id_no].port);
+  // //
   //
-
-  //  for(i=0; i<2; i++) {
-  pthread_join(tids[0], NULL);
-  pthread_join(tids[1], NULL);
-  printf("Threads returned\n");
+  // //  for(i=0; i<2; i++) {
+  // pthread_join(tids[0], NULL);
+  // pthread_join(tids[1], NULL);
+  // printf("Threads returned\n");
   //  }
   return 0;
 }

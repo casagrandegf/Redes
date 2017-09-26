@@ -13,6 +13,6 @@ struct tplg {
   int n;
 };
 
-void dijkstra(int inicio, struct tplg topology, int dist[]) ;
+void dijkstra(int inicio, struct tplg topology, struct pair dist[]) ;
 
 #endif
