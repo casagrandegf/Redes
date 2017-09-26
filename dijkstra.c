@@ -7,7 +7,7 @@ void dijkstra(int inicio, struct tplg topology, struct pair resp[]) {
   heap[0].size = 1;
   int i, u;
 
-  for (i = 0; i < MAX; i++) //inicializa distancias com infinito
+  for (i = 0; i <= topology.n; i++) //inicializa distancias com infinito
     dist[i].first = INF,
     dist[i].second = -1;
   (dist)[inicio].first = 0;
@@ -34,17 +34,17 @@ void dijkstra(int inicio, struct tplg topology, struct pair resp[]) {
   }
 
   //Ajusta tabela de roteamento
-  for (u = 0; u < topology.n; u++) {
+  for (u = 0; u <= topology.n; u++) {
     int i = u;
     if (i != inicio)
       while (dist[i].second != inicio && dist[i].second > -1)
         if (dist[i].second != inicio) i = dist[i].second;
       resp[u].second = i,
       resp[u].first = dist[u].first;
- 
+
   }
   resp[inicio].first = 0;
   resp[inicio].second = inicio;
-  // for (i = 0; i < topology.n; i++)
+  // for (i = 0; i <= topology.n; i++)
   //   printf("i: %d saida = %d dist = %d\n", i, resp[i].second, resp[i].first);
 }

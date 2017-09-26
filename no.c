@@ -48,11 +48,6 @@ int main(int argc, char *argv[]) {
 // #define TOPOLOGY
 #ifdef TOPOLOGY
   int i, j;
-  // for (i = 0; i < topology.n; i++) {
-  //   for (j = 0; j < topology.n; j++)
-  //     printf("%d ", topology.vet[i][j]);
-  //   printf("\n");
-  // }
   for (i = 0; i < 10; i++) {
   		while(topology.adjList[i] != NULL)
   			printf("weight: %d neighbor: %d\n", topology.adjList[i]->first, topology.adjList[i]->second),
@@ -70,7 +65,7 @@ int main(int argc, char *argv[]) {
 #define DIST
 #ifdef DIST
   int i;
-  for (i = 0; i < topology.n; i++)
+  for (i = 0; i <= topology.n; i++)
     printf("i: %d saida = %d dist = %d\n", i, dist[i].second, dist[i].first);
 #endif
 
