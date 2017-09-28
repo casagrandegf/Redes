@@ -122,44 +122,79 @@ void *client(struct roteamento *rotConf)
     //     exit(1);
     // }
 
-    while(1)
-    {
+    while(1) {
+        struct msg message;
+        message.dest = 0;
+        message.type = MESSAGE;
+
+        // printf("%s\n", message.type == MESSAGE ? "mensagem" : "ack");
+        memset(message.message,'\0', BUFLEN);
+        // printf("MESSAGE DEST  %d\n", message.dest);
         printf("Client>> Enter message : ");
         //gets(message);
         int dest = 0;
 
-        scanf("%d", &dest);
-        // if (dest < 0) stop = -1;
-        // if (stop < 0) break;
-        fgets(message, 100, stdin);
-        message[strlen(message) - 1] = '\0';
-        // puts('\n');
-        int port = (int)(*rotConf).conf[(*rotConf).tab[dest].second].port;
+        // scanf("%d", &dest);
+        // fgets(message, 100, stdin);
+        // message[strlen(message) - 1] = '\0';
 
+
+        scanf("%d", &message.dest);
+        fgets(message.message, 100, stdin);
+        message.message[strlen(message.message) - 1] = '\0';
+        // printf("destino: %d\n", message.dest);
+        //  scanf("%s", message.message);
+        // puts('\n');
+        // int port = (int)(*rotConf).conf[(*rotConf).tab[dest].second].port;
+        int port = (int)(*rotConf).conf[(*rotConf).tab[message.dest].second].port;
+        // printf("porta %d\n", port);
 
         printf("\n");
         // printf("%s\n", (*rotConf).conf[(*rotConf).id_no].ip);
         // printf("port = %d\nip: %s\n", (*rotConf).id_no, (char *)(*rotConf).conf[(*rotConf).tab[dest].first].ip);
         si_other.sin_port = htons(port);
-        if (inet_aton((*rotConf).conf[(*rotConf).tab[dest].second].ip , &si_other.sin_addr) == 0) //address to number
-          fprintf(stderr, "inet_aton() failed\n"),
+        if (inet_aton((*rotConf).conf[(*rotConf).tab[message.dest].second].ip , &si_other.sin_addr) == 0) //address to number
+          fprintf(stderr, "inet_aton() client failed\n"),
           exit(1);
 
         //send the message
-        if (sendto(s, message, strlen(message) , 0 , (struct sockaddr *) &si_other, slen)==-1)
-            die("sendto()");
+        // if (sendto(s, message, strlen(message) , 0 , (struct sockaddr *) &si_other, slen)==-1)
+        //     die("sendto()");
+        //
+        //timeout
+        int attempts = ATTEMPTS_STD;
+        struct timeval timeout;
+        enum msg_type timeo = NONE;
+        timeout.tv_sec = 1;
+        timeout.tv_usec = 10;
 
-        //receive a reply and print it
-        //clear the buffer by filling null, it might have previously received data
-        memset(buf,'\0', BUFLEN);
-        //try to receive some data, this is a blocking call
-        // if (recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == -1)
-          // die("recvfrom()");
-          // printf("passou\n");
 
+        while (attempts--) {
+          //sends the message
+          if (sendto(s, &message, sizeof(message) + BUFLEN , 0 , (struct sockaddr *) &si_other, slen)==-1)
+              die("sendto()");
+          //receive a reply and print it
+          //clear the buffer by filling null, it might have previously received data
+          memset(buf,'\0', BUFLEN);
+          //try to receive some data, this is a blocking call
+          setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, (char *) &timeout, sizeof(timeout));
 
-				if (!strcmp(buf, "exit")) close(s), pthread_exit(NULL);
-        // puts(buf);
+          struct msg ack;
+          // memset(ack.message, '\0', BUFLEN);
+          ack.type = NONE;
+
+          // wait for ack
+          if (recvfrom(s, &ack, sizeof(ack) + BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == -1)
+            printf("Failed to send. Sending message again\n");//die("recvfrom() Mensage Not delivered");
+            // printf("passou\n");
+          // if (!ack) printf("Mensage Not delivered");
+          printf("%s\n", ack.type == ACK ? "ACK" : ack.type == MESSAGE ? "MESSAGE" : "NONE");
+  				if (!strcmp(buf, "exit")) close(s), pthread_exit(NULL);
+          // puts(buf);
+          timeo = ack.type;
+          if  (ack.type == ACK) break;
+        }
+        if (timeo == NONE) printf("Timeout. Failed to send\n");
     }
 
     close(s);
@@ -176,9 +211,7 @@ void* server(struct roteamento *rotConf) //(intptr_t)rotConf[id_no].port
 
     //create a UDP socket
     if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
-    {
         die("socket");
-    }
 
     // zero out the structure
     memset((char *) &si_me, 0, sizeof(si_me));
@@ -189,14 +222,12 @@ void* server(struct roteamento *rotConf) //(intptr_t)rotConf[id_no].port
 
     //bind socket to port
     if( bind(s , (struct sockaddr*)&si_me, sizeof(si_me) ) == -1)
-    {
         die("bind");
-    }
       // printf("SERVEN\n");
     //keep listening for data
     while(1)
     {
-        if (stop < 0) break;
+        struct msg message;
         // printf("Waiting for data...");
         //receive a reply and print it
         //clear the buffer by filling null, it might have previously received data
@@ -205,21 +236,20 @@ void* server(struct roteamento *rotConf) //(intptr_t)rotConf[id_no].port
         // fflush(stdin);
 
         //try to receive some data, this is a blocking call
-        if ((recv_len = recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == -1)
-        {
+        if ((recv_len = recvfrom(s, &message, sizeof(message) + BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == -1)
             die("recvfrom()");
-        }
+
 
         //print details of the client/peer and the data received
-        printf("Server>> Received packet from %s:%d \n           with data: %s\n\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port), buf);
+        printf("Received packet from %s:%d \n           with data: %s\n\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port), message.message);
         // printf("Server>> Data: %s\n\n" , buf);
 
-        //now reply the client with the same data
-        // if (sendto(s, buf, recv_len, 0, (struct sockaddr*) &si_other, slen) == -1)
-        // {
-        //     die("sendto()");
-        // }
-        printf("SErver:   ");
+        // now reply with ACK
+        struct msg ack;
+        memset(ack.message, '\0', BUFLEN);
+        ack.type = ACK;
+        if (sendto(s, &ack, sizeof(ack) + BUFLEN, 0, (struct sockaddr*) &si_other, slen) == -1)
+          die("sendto()");
     }
 
     close(s);
