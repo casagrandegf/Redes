@@ -33,17 +33,23 @@ Simple udp client
 
 
 int main(int argc, char *argv[]) {
-  int id_no = atoi(argv[1]);
-  // printf("AQUI\n");
-  struct roteamento rotConf[100];
+  int i;
+  struct roteamento rotConf;
   struct tplg topology;
-  struct pair dist[MAX];
+  // struct pair dist[MAX];
 
+
+  rotConf.id_no = atoi(argv[1]);
   ini_list(topology.adjList, MAX); //zera vetor de listas
 
-  getRot(rotConf);
+  getRot(rotConf.conf);
   getEnl(&topology);
-  dijkstra(id_no, topology, dist);
+  dijkstra(rotConf.id_no, topology, rotConf.tab);
+
+  //limpa lista de adjacencias
+  for (i = 0; i <= topology.n; i++)
+    clear_list(topology.adjList[i]);
+
 
 // #define TOPOLOGY
 #ifdef TOPOLOGY
@@ -62,7 +68,7 @@ int main(int argc, char *argv[]) {
     printf("%d das %s\n", rotConf[i].port, rotConf[i].ip);
 #endif
 
-#define DIST
+// #define DIST
 #ifdef DIST
   int i;
   for (i = 0; i <= topology.n; i++)
@@ -70,21 +76,20 @@ int main(int argc, char *argv[]) {
 #endif
 
 
-  // printf("%d\n", id_no);
-  // pthread_t tids[2];
-  // pthread_create(&tids[0], NULL, client, rotConf);
-  // pthread_create(&tids[1], NULL, server, rotConf[id_no].port);
-  // //
+  pthread_t tids[2];
+  pthread_create(&tids[0], NULL, (void *)client, &rotConf);
+  pthread_create(&tids[1], NULL, (void *)server, &rotConf);
   //
-  // //  for(i=0; i<2; i++) {
-  // pthread_join(tids[0], NULL);
-  // pthread_join(tids[1], NULL);
+  // //
+  // // //  for(i=0; i<2; i++) {
+  pthread_join(tids[0], NULL);
+  pthread_join(tids[1], NULL);
   // printf("Threads returned\n");
   //  }
   return 0;
 }
 
-
+  int stop = 1;
 
 
 
@@ -95,13 +100,13 @@ void die(char *s)
     exit(1);
 }
 
-void *client(struct roteamento rotConf[])
+void *client(struct roteamento *rotConf)
 {
     struct sockaddr_in si_other;
-    int s, i, slen=sizeof(si_other);
+    int s;
     char buf[BUFLEN];
     char message[BUFLEN];
-
+    unsigned int slen=sizeof(si_other);
     if ( (s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
     {
         die("socket");
@@ -119,15 +124,24 @@ void *client(struct roteamento rotConf[])
 
     while(1)
     {
-
         printf("Client>> Enter message : ");
         //gets(message);
-        int dest;
-        scanf("%d %s", &dest, message);
-				// puts('\n');
-				printf("\n");
-        si_other.sin_port = htons(rotConf[dest].port);
-        if (inet_aton(rotConf[dest].ip , &si_other.sin_addr) == 0) //address to number
+        int dest = 0;
+
+        scanf("%d", &dest);
+        // if (dest < 0) stop = -1;
+        // if (stop < 0) break;
+        fgets(message, 100, stdin);
+        message[strlen(message) - 1] = '\0';
+        // puts('\n');
+        int port = (int)(*rotConf).conf[(*rotConf).tab[dest].second].port;
+
+
+        printf("\n");
+        // printf("%s\n", (*rotConf).conf[(*rotConf).id_no].ip);
+        // printf("port = %d\nip: %s\n", (*rotConf).id_no, (char *)(*rotConf).conf[(*rotConf).tab[dest].first].ip);
+        si_other.sin_port = htons(port);
+        if (inet_aton((*rotConf).conf[(*rotConf).tab[dest].second].ip , &si_other.sin_addr) == 0) //address to number
           fprintf(stderr, "inet_aton() failed\n"),
           exit(1);
 
@@ -135,13 +149,13 @@ void *client(struct roteamento rotConf[])
         if (sendto(s, message, strlen(message) , 0 , (struct sockaddr *) &si_other, slen)==-1)
             die("sendto()");
 
-
         //receive a reply and print it
         //clear the buffer by filling null, it might have previously received data
         memset(buf,'\0', BUFLEN);
         //try to receive some data, this is a blocking call
-        if (recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == -1)
-          die("recvfrom()");
+        // if (recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == -1)
+          // die("recvfrom()");
+          // printf("passou\n");
 
 
 				if (!strcmp(buf, "exit")) close(s), pthread_exit(NULL);
@@ -152,12 +166,13 @@ void *client(struct roteamento rotConf[])
 		pthread_exit(NULL);
 }
 
-void* server(char *port)
+void* server(struct roteamento *rotConf) //(intptr_t)rotConf[id_no].port
 {
     struct sockaddr_in si_me, si_other;
 
-    int s, i, slen = sizeof(si_other) , recv_len;
+    int s, recv_len;
     char buf[BUFLEN];
+    unsigned slen = sizeof(si_other);
 
     //create a UDP socket
     if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
@@ -169,7 +184,7 @@ void* server(char *port)
     memset((char *) &si_me, 0, sizeof(si_me));
 
     si_me.sin_family = AF_INET;
-    si_me.sin_port = htons(port);
+    si_me.sin_port = htons((*rotConf).conf[(*rotConf).id_no].port);//my port
     si_me.sin_addr.s_addr = htonl(INADDR_ANY);
 
     //bind socket to port
@@ -177,15 +192,17 @@ void* server(char *port)
     {
         die("bind");
     }
-
+      // printf("SERVEN\n");
     //keep listening for data
     while(1)
     {
+        if (stop < 0) break;
         // printf("Waiting for data...");
-        fflush(stdout);
         //receive a reply and print it
         //clear the buffer by filling null, it might have previously received data
+        fflush(stdout);
         memset(buf,'\0', BUFLEN);
+        // fflush(stdin);
 
         //try to receive some data, this is a blocking call
         if ((recv_len = recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == -1)
@@ -194,14 +211,15 @@ void* server(char *port)
         }
 
         //print details of the client/peer and the data received
-        printf("Server>> Received packet from %s:%d\n\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
-        printf("Server>> Data: %s\n\n" , buf);
+        printf("Server>> Received packet from %s:%d \n           with data: %s\n\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port), buf);
+        // printf("Server>> Data: %s\n\n" , buf);
 
         //now reply the client with the same data
-        if (sendto(s, buf, recv_len, 0, (struct sockaddr*) &si_other, slen) == -1)
-        {
-            die("sendto()");
-        }
+        // if (sendto(s, buf, recv_len, 0, (struct sockaddr*) &si_other, slen) == -1)
+        // {
+        //     die("sendto()");
+        // }
+        printf("SErver:   ");
     }
 
     close(s);

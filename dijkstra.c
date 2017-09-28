@@ -45,6 +45,9 @@ void dijkstra(int inicio, struct tplg topology, struct pair resp[]) {
   }
   resp[inicio].first = 0;
   resp[inicio].second = inicio;
+
+  for (i = 0; i <= topology.n; i++)
+    clear_list(topology.adjList[i]);
   // for (i = 0; i <= topology.n; i++)
   //   printf("i: %d saida = %d dist = %d\n", i, resp[i].second, resp[i].first);
 }
