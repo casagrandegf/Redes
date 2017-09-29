@@ -22,14 +22,7 @@ Simple udp client
 // #include "dijkstra.h"
 
 // #define MAX 1123
-#define SERVER "127.0.0.1"
 #define BUFLEN 512  //Max length of buffer
-#define PORT 8888   //The port on which to send data
-/* You can compile this program with:
- * gcc -Wall -D_REENTRANT -o thread thread.c<\n>
- * -lpthread */
-/* We always need to include this header file for<\n>
- * the threads */
 
 
 int main(int argc, char *argv[]) {
@@ -104,8 +97,8 @@ void *client(struct roteamento *rotConf)
 {
     struct sockaddr_in si_other;
     int s;
-    char buf[BUFLEN];
-    char message[BUFLEN];
+    // char buf[BUFLEN];
+    // char message[BUFLEN];
     unsigned int slen=sizeof(si_other);
     if ( (s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
     {
@@ -125,14 +118,14 @@ void *client(struct roteamento *rotConf)
     while(1) {
         struct msg message;
         message.dest = 0;
-        message.type = MESSAGE;
+        message.type = NONE;
+        memset(message.message,'\0', BUFLEN);
 
         // printf("%s\n", message.type == MESSAGE ? "mensagem" : "ack");
-        memset(message.message,'\0', BUFLEN);
         // printf("MESSAGE DEST  %d\n", message.dest);
         printf("Client>> Enter message : ");
         //gets(message);
-        int dest = 0;
+        // int dest = 0;
 
         // scanf("%d", &dest);
         // fgets(message, 100, stdin);
@@ -151,7 +144,7 @@ void *client(struct roteamento *rotConf)
 
         printf("\n");
         // printf("%s\n", (*rotConf).conf[(*rotConf).id_no].ip);
-        // printf("port = %d\nip: %s\n", (*rotConf).id_no, (char *)(*rotConf).conf[(*rotConf).tab[dest].first].ip);
+        // printf("port ip: %s\n",(char *)(*rotConf).conf[(*rotConf).tab[message.dest].second].ip);
         si_other.sin_port = htons(port);
         if (inet_aton((*rotConf).conf[(*rotConf).tab[message.dest].second].ip , &si_other.sin_addr) == 0) //address to number
           fprintf(stderr, "inet_aton() client failed\n"),
@@ -175,7 +168,7 @@ void *client(struct roteamento *rotConf)
               die("sendto()");
           //receive a reply and print it
           //clear the buffer by filling null, it might have previously received data
-          memset(buf,'\0', BUFLEN);
+          // memset(buf,'\0', BUFLEN);
           //try to receive some data, this is a blocking call
           setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, (char *) &timeout, sizeof(timeout));
 
@@ -189,11 +182,12 @@ void *client(struct roteamento *rotConf)
             // printf("passou\n");
           // if (!ack) printf("Mensage Not delivered");
           printf("%s\n", ack.type == ACK ? "ACK" : ack.type == MESSAGE ? "MESSAGE" : "NONE");
-  				if (!strcmp(buf, "exit")) close(s), pthread_exit(NULL);
+  				// if (!strcmp(buf, "exit")) close(s), pthread_exit(NULL);
           // puts(buf);
           timeo = ack.type;
-          if  (ack.type == ACK) break;
+          if (ack.type == ACK) break;
         }
+        printf("DESTINO NO CLIENTE: %d\n", message.dest);
         if (timeo == NONE) printf("Timeout. Failed to send\n");
     }
 
@@ -206,6 +200,7 @@ void* server(struct roteamento *rotConf) //(intptr_t)rotConf[id_no].port
     struct sockaddr_in si_me, si_other;
 
     int s, recv_len;
+    int myport = (*rotConf).conf[(*rotConf).id_no].port;
     char buf[BUFLEN];
     unsigned slen = sizeof(si_other);
 
@@ -217,7 +212,7 @@ void* server(struct roteamento *rotConf) //(intptr_t)rotConf[id_no].port
     memset((char *) &si_me, 0, sizeof(si_me));
 
     si_me.sin_family = AF_INET;
-    si_me.sin_port = htons((*rotConf).conf[(*rotConf).id_no].port);//my port
+    si_me.sin_port = htons(myport);
     si_me.sin_addr.s_addr = htonl(INADDR_ANY);
 
     //bind socket to port
@@ -228,6 +223,10 @@ void* server(struct roteamento *rotConf) //(intptr_t)rotConf[id_no].port
     while(1)
     {
         struct msg message;
+        message.dest = 0;
+        message.type = NONE;
+        memset(message.message,'\0', BUFLEN);
+
         // printf("Waiting for data...");
         //receive a reply and print it
         //clear the buffer by filling null, it might have previously received data
@@ -238,10 +237,29 @@ void* server(struct roteamento *rotConf) //(intptr_t)rotConf[id_no].port
         //try to receive some data, this is a blocking call
         if ((recv_len = recvfrom(s, &message, sizeof(message) + BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == -1)
             die("recvfrom()");
+            printf("1 - Received packet from %s:%d \n           with data: %s\n\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port), message.message);
 
+            printf("DESTINO SERVER: %d myid: %s\n", message.dest, (*rotConf).conf[(*rotConf).tab[message.dest].second].ip);
+        if (message.dest == (*rotConf).id_no)
+          printf("Received packet from %s:%d \n           with data: %s\n\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port), message.message);
+        else {//else cagando
+          struct sockaddr_in si_next;
+          unsigned int nextlen = sizeof(si_next);
+          // int s_next;
+          // if ((s_next = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+          //   die("socket");
 
+          memset((char *) &si_next, 0, sizeof(si_next));
+          si_next.sin_family = AF_INET;
+          si_next.sin_port = htons((*rotConf).conf[message.dest].port);
+          // printf("rot dest: %s\n", (*rotConf).conf[message.dest].ip);
+          if (inet_aton((*rotConf).conf[(*rotConf).tab[message.dest].second].ip , &si_next.sin_addr) == 0) //address to number
+            fprintf(stderr, "inet_aton() else client failed\n"),
+            exit(1);
+          if (sendto(s, &message, sizeof(message) + BUFLEN, 0, (struct sockaddr *) &si_next, nextlen) == -1)
+            die("sendto() next");
+         }
         //print details of the client/peer and the data received
-        printf("Received packet from %s:%d \n           with data: %s\n\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port), message.message);
         // printf("Server>> Data: %s\n\n" , buf);
 
         // now reply with ACK
