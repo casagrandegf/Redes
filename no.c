@@ -190,7 +190,7 @@ void* server(struct roteamento *rotConf) //(intptr_t)rotConf[id_no].port
           si_next.sin_family = AF_INET;
                                   //  (*rotConf).conf[(*rotConf).tab[message.dest].second].port;
           si_next.sin_port = htons((*rotConf).conf[message.dest].port);
-          printf("rot dest: %s\n", (*rotConf).conf[(*rotConf).tab[message.dest].second].ip);
+          // printf("rot dest: %s\n", (*rotConf).conf[(*rotConf).tab[message.dest].second].ip);
           if (inet_aton((*rotConf).conf[(*rotConf).tab[message.dest].second].ip , &si_next.sin_addr) == 0) //address to number
             fprintf(stderr, "inet_aton() else server failed\n"),
             exit(1);
@@ -201,7 +201,7 @@ void* server(struct roteamento *rotConf) //(intptr_t)rotConf[id_no].port
           memset(ack.message, '\0', BUFLEN);
           ack.type = ACK;
           if (sendto(s, &ack, sizeof(ack), 0, (struct sockaddr*) &si_other, slen) == -1)
-          die("sendto()");
+            die("sendto()");
          }
     }
     close(s);
