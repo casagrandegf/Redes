@@ -8,6 +8,7 @@
 #define INF 1123465789
 #define MAX 11234
 
+//Structure with an adjacency list of the graph
 struct tplg {
   struct list *adjList[MAX];
   int n;
