@@ -160,18 +160,21 @@ void* receiver(struct roteamento *rotConf) {
       die("\nrecvfrom() receiver()\n");
 
     //Test if the message will be forwarded or showed in this router
-    if (message.dest == (*rotConf).id_no)
+    if (message.dest == (*rotConf).id_no) {
       printf("\n....Received packet from router %d\n....With message: %s\n\n",  message.origin, message.message);
+      
+      //Now reply with acknowledgement
+      struct msg ack;
+      memset(ack.message, '\0', sizeof(ack.message));
+      ack.type = ACK;
+      if (sendto(sockt, &ack, sizeof(ack), 0, (struct sockaddr*) &si_other, slen) == -1)
+      die("\nsendto() receiver()\n");
+    }
     else {
       printf("\nRouter %d forwarding message with: destiny: %d origin: %d\n", (*rotConf).id_no, message.dest, message.origin);
       send_n(message, &(*rotConf));
     }
-    //Now reply with acknowledgement
-    struct msg ack;
-    memset(ack.message, '\0', sizeof(ack.message));
-    ack.type = ACK;
-    if (sendto(sockt, &ack, sizeof(ack), 0, (struct sockaddr*) &si_other, slen) == -1)
-      die("\nsendto() receiver()\n");
+    
   }
 
   close(sockt);
