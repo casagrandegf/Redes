@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 struct list{
-	int first, second; //second = neighbor//first = weight
+	int first, second; // second = neighbor//first = weight
 	struct list *prox;
 };
 

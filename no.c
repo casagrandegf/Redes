@@ -1,6 +1,3 @@
-/*
-Simple udp client
-*/
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -26,14 +23,14 @@ int main(int argc, char *argv[]) {
   struct tplg topology;
 
   rotConf.id_no = atoi(argv[1]);
-  ini_list(topology.adjList, MAX); //zera vetor de listas
+  ini_list(topology.adjList, MAX); //put zero in the list
 
   printf("Id node: %d\n", rotConf.id_no);
   getRot(rotConf.conf);
   getEnl(&topology);
   dijkstra(rotConf.id_no, topology, rotConf.tab);
 
-  //limpa lista de adjacencias
+  //Clear list of adjacency
   for (i = 0; i <= topology.n; i++)
     clear_list(topology.adjList[i]);
 
@@ -70,50 +67,50 @@ void *sender(struct roteamento *rotConf) {
   pthread_exit(NULL);
 }
 
-//function used to send the message to the destiny
+// Function used to send the message to the destiny
 void send_n(struct msg message, struct roteamento *rotConf) {
   int sockt;
   struct sockaddr_in si_dest;
   unsigned int slen = sizeof(si_dest);
 
-  //Create a UDP socket
+  // Create a UDP socket
   if ((sockt=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
     die("socket");
   memset((char *) &si_dest, 0, sizeof(si_dest));
   si_dest.sin_family = AF_INET;
-  //Gets the port which will be send the message
+  // Gets the port which will be send the message
   int port = (int)(*rotConf).conf[(*rotConf).tab[message.dest].second].port;
 
   si_dest.sin_port = htons(port);
   if (inet_aton((*rotConf).conf[(*rotConf).tab[message.dest].second].ip , &si_dest.sin_addr) == 0) //address to number
     fprintf(stderr, "inet_aton() send_n() failed\n"),
     exit(1);
-  //Sets the timeout and the number of attempts in case of fail
+  // Initialize the timeout and the number of attempts in case of fail
   int attempts = ATTEMPTS_STD;
   enum msg_type timeo = NONE;
   struct timeval timeout;
   timeout.tv_sec = 1;
   timeout.tv_usec = 10;
 
-  //Tries send the message until a confirmation is get
+  // Tries send the message until a confirmation is get
   while (attempts--) {
     struct msg ack;
 
     memset(ack.message, '\0', sizeof(ack.message));
     ack.type = NONE;
 
-    //sends the message
+    // Sends the message
     if (sendto(sockt, &message, sizeof(message), 0 , (struct sockaddr *) &si_dest, slen)==-1)
       die("\nsendto() send_n()\n");
 
-    //sets the timeout of current socket
+    // Sets the timeout of current socket
     setsockopt(sockt, SOL_SOCKET, SO_RCVTIMEO, (char *) &timeout, sizeof(timeout));
 
-    //Wait for acknowledgement
+    // Wait for acknowledgement
     if (recvfrom(sockt, &ack, sizeof(ack), 0, (struct sockaddr *) &si_dest, &slen) == -1)
       printf("\n....Failed to send. Sending message again...\n");
 
-    //In case of success, get the confirmation and leave this function
+    // In case of success, get the confirmation and leave this function
     timeo = ack.type;
     if (ack.type == ACK) break;
   }
@@ -123,57 +120,57 @@ void send_n(struct msg message, struct roteamento *rotConf) {
   close(sockt);
 }
 
-//Function used for receive or forward a message
+// Function used for receive or forward a message
 void* receiver(struct roteamento *rotConf) {
   struct sockaddr_in si_me, si_other;
   int sockt, recv_len;
   int myport = (*rotConf).conf[(*rotConf).id_no].port;
   unsigned slen = sizeof(si_other);
 
-  //create a UDP socket
+  // Create a UDP socket
   if ((sockt=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
     die("socket");
 
-  // zero out the structure
+  // Zero out the structure
   memset((char *) &si_me, 0, sizeof(si_me));
 
   si_me.sin_family = AF_INET;
   si_me.sin_port = htons(myport); //ntohs();
   si_me.sin_addr.s_addr = htonl(INADDR_ANY);
 
-  //Bind socket to port
+  // Bind socket to port
   if( bind(sockt , (struct sockaddr*)&si_me, sizeof(si_me) ) == -1)
     die("bind");
 
-  //Keep listening for data
+  // Keep listening for data
   while(1) {
     struct msg message;
 
-    //Sets the message struct to default values
+    // Sets the message struct to default values
     message.dest = message.origin = 0;
     message.type = NONE;
     memset(message.message,'\0', sizeof(message.message));
     fflush(stdout);
 
-    //Try to receive some data
+    // Try to receive some data
     if ((recv_len = recvfrom(sockt, &message, sizeof(message), 0, (struct sockaddr *) &si_other, &slen)) == -1)
       die("\nrecvfrom() receiver()\n");
 
-    //Test if the message will be forwarded or showed in this router
+    // Test if the message will be forwarded or showed in this router
     if (message.dest == (*rotConf).id_no) {
       printf("\n....Received packet from router %d\n....With message: %s\n\n",  message.origin, message.message);
-      
-      //Now reply with acknowledgement
-      struct msg ack;
-      memset(ack.message, '\0', sizeof(ack.message));
-      ack.type = ACK;
-      if (sendto(sockt, &ack, sizeof(ack), 0, (struct sockaddr*) &si_other, slen) == -1)
-      die("\nsendto() receiver()\n");
     }
     else {
       printf("\nRouter %d forwarding message with: destiny: %d origin: %d\n", (*rotConf).id_no, message.dest, message.origin);
       send_n(message, &(*rotConf));
     }
+    
+    // Now reply with acknowledgement
+    struct msg ack;
+    memset(ack.message, '\0', sizeof(ack.message));
+    ack.type = ACK;
+    if (sendto(sockt, &ack, sizeof(ack), 0, (struct sockaddr*) &si_other, slen) == -1)
+    die("\nsendto() receiver()\n");
     
   }
 

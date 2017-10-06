@@ -3,6 +3,6 @@ list:
 priorityq:
 	gcc test_priorityq.c priorityq.c
 no:
-	gcc -Wall no.c dijkstra.c list.c priorityq.c utility.c -lpthread
+	gcc -Wall no.c -o no dijkstra.c list.c priorityq.c utility.c -lpthread
 clean:
-	rm *.out
+	rm -rf *.out no

@@ -1,6 +1,6 @@
-# Redes
+# Network routing simulation
 
-## To compile use: make no
+## To compile, use: make no
 
 ## The file enlaces.config contains the link between routers. The format of file is:
 
@@ -14,12 +14,12 @@ So, to add new configurations just modify the file.
 
 So, to include new routers, just add this info.
 
-## To make easily for test, a script "test.sh" have been created. In
+## To make a test easily, a script "test.sh" have been created. To include more routers just copy a line an change the id.
 
 ## To run:
- 1 - execute one by one ./no "Id router". Or
- 2 - execute sh test.sh
+ 1 - run one by one: ./no "Id router". Or
+ 2 - run: sh test.sh
 
 
-## The format of messages is:
+## To send messages between routers, just write in the format:
 "Id destination" "message"

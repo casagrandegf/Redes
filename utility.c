@@ -1,7 +1,7 @@
 #include "utility.h"
 
 
-//Reads a file with the configuration of the links
+// Reads a file with the configuration of the links
 void getEnl(struct tplg *topology) {
   FILE *fp;
   int u, v, w;
@@ -18,7 +18,7 @@ void getEnl(struct tplg *topology) {
   fclose(fp);
 }
 
-//Reads a file with the graph
+// Reads a file with the graph
 void getRot(struct conf rotConf[]) {
   FILE *fp;
   int a,b;

@@ -7,22 +7,25 @@
 
 #define max(a, b) (a > b ? a : b)
 #define ATTEMPTS_STD 5
-#define MSGLEN 512  //Max length of message
+#define MSGLEN 512  // Max length of message
 
 struct conf {
   int port;
   char ip[20];
 };
 
+// Defines the ip, port and the route table
 struct roteamento {
  int id_no;
  struct conf conf[MAX];
- struct pair tab[MAX]; //out: second; distance: first
+ struct pair tab[MAX]; // out: second; distance: first
 };
+// Defines the type of message
 enum msg_type{
    NONE, MESSAGE, ACK,
 };
 
+// Define the structure of a message
 struct msg {
   char message[100];
   int dest, origin;

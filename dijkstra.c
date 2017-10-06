@@ -1,23 +1,23 @@
 #include "dijkstra.h"
 
 
-//dist.first = weight dist.second = origin vertix
+// Dist.first = weight dist.second = origin vertix
 void dijkstra(int inicio, struct tplg topology, struct pair resp[]) {
   struct pair heap[MAX], dist[MAX];
   heap[0].size = 1;
   int i, u;
 
-  //Initializes the distances with infinite
+  // Initializes the distances with infinite
   for (i = 0; i <= topology.n; i++)
     dist[i].first = INF,
     dist[i].second = -1;
   (dist)[inicio].first = 0;
   dist[inicio].second = inicio;
 
-  //Add the first node in the priority queue
+  // Add the first node in the priority queue
   push(heap, 0, inicio);
 
-  //Relaxation of the edges
+  // Relaxation of the edges
   while(heap[0].size > 0) {
     struct pair front;
     front = top(heap);
@@ -25,7 +25,7 @@ void dijkstra(int inicio, struct tplg topology, struct pair resp[]) {
     int d = front.first, u = front.second;
     if (d > dist[u].first) continue;
 
-    //Scroll through the adjacency list updating the accumulated distances
+    // Scroll through the adjacency list updating the accumulated distances
     while(topology.adjList[u] != NULL) {
       if ((dist)[u].first + topology.adjList[u]->first < (dist)[topology.adjList[u]->second].first) {
         (dist)[topology.adjList[u]->second].first = (dist)[u].first + topology.adjList[u]->first;
@@ -36,7 +36,7 @@ void dijkstra(int inicio, struct tplg topology, struct pair resp[]) {
     }
   }
 
-  //With backtraking on the vector of distances, creates a routing table
+  // With backtraking on the vector of distances, creates a routing table
   for (u = 0; u <= topology.n; u++) {
     int i = u;
     if (i != inicio)
@@ -49,7 +49,7 @@ void dijkstra(int inicio, struct tplg topology, struct pair resp[]) {
   resp[inicio].first = 0;
   resp[inicio].second = inicio;
 
-  //Clear the adjacency list of the graph
+  // Clear the adjacency list of the graph
   for (i = 0; i <= topology.n; i++)
     clear_list(topology.adjList[i]);
 
