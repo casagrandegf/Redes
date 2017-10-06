@@ -14,8 +14,12 @@ So, to add new configurations just modify the archive.
 
 So, to include new routers, just modify this info.
 
-##To make easily for test, a archive "test.sh" have been created. In
+##To make easily for test, a script "test.sh" have been created. In
 
 ##To run:
- 1 - execute one by one ./no "Id router", or
+ 1 - execute one by one ./no "Id router". Or
  2 - execute sh test.sh
+
+
+## The format of messages is:
+"Id destination" "message"
