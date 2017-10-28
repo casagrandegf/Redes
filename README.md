@@ -1,5 +1,5 @@
 # Network routing simulation
-## Stop and wait protocol idea, and no queue, then, less/not-aplicable in the real routing. But for study purposes it's nice.
+## Stop and wait protocol idea, and no queue, then, little/not-aplicable in the real routing. But for study purposes it's nice.
 
 ## To compile, use: make no
 
